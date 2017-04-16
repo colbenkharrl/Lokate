@@ -83,8 +83,9 @@ class DataModel {
     
     var results = [Result]()
     
-    func fetchJSON(term: String, username: String) -> Bool {
+    func fetchJSON(term: String, username: String) -> (success: Bool, results: String) {
         var res = false
+        var JSONdata = ""
         let semaphore = DispatchSemaphore(value: 0);
         let urlString = "http://api.geonames.org/wikipediaSearchJSON?formatted=true&q="+term.removingWhitespaces()+"&maxRows=20&username="+username+"&style=full"
         let url = URL(string: urlString)!
@@ -96,6 +97,7 @@ class DataModel {
             let jsonResult = (try! JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers)) as! NSDictionary
             if let dat = jsonResult["geonames"] as? NSArray {
                 res = true
+                JSONdata = jsonResult.description
                 self.results = []
                 self.parseResults(data: dat)
             }
@@ -103,7 +105,7 @@ class DataModel {
         })
         jsonQuery.resume()
         semaphore.wait(timeout: .distantFuture)
-        return res
+        return (res, JSONdata)
     }
     
     func parseResults(data: NSArray) {

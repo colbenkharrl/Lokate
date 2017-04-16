@@ -13,6 +13,7 @@ import MessageUI
 class WebViewController: UIViewController, UIWebViewDelegate, MFMessageComposeViewControllerDelegate {
     @IBOutlet weak var progressIndicator: UIActivityIndicatorView!
     
+    var messaged = false
     var urlString: String = "www.google.com"
     @IBOutlet weak var webView: UIWebView!
     
@@ -25,14 +26,16 @@ class WebViewController: UIViewController, UIWebViewDelegate, MFMessageComposeVi
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        if !(urlString.hasPrefix("http://") || urlString.hasPrefix("https://")) {
-            urlString = "http://" + urlString
+        if !messaged {
+            if !(urlString.hasPrefix("http://") || urlString.hasPrefix("https://")) {
+                urlString = "http://" + urlString
+            }
+            let url = URL(string: urlString)
+            let req = URLRequest(url:url!)
+            progressIndicator.hidesWhenStopped = true
+            progressIndicator.startAnimating()
+            webView.loadRequest(req)
         }
-        let url = URL(string: urlString)
-        let req = URLRequest(url:url!)
-        progressIndicator.hidesWhenStopped = true
-        progressIndicator.startAnimating()
-        webView.loadRequest(req)
     }
     
     func webView(_ webView: UIWebView, didFailLoadWithError error: Error) {
@@ -48,6 +51,7 @@ class WebViewController: UIViewController, UIWebViewDelegate, MFMessageComposeVi
     }
     @IBAction func share(_ sender: UIBarButtonItem) {
         if (MFMessageComposeViewController.canSendText()) {
+            messaged = true
             let controller = MFMessageComposeViewController()
             controller.body = "Check this place out!\n\n" + (webView.request?.url?.absoluteString)!
             controller.messageComposeDelegate = self

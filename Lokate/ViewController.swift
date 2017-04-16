@@ -14,6 +14,8 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     var tap: UITapGestureRecognizer = UITapGestureRecognizer()
     
+    var retrievedJSON = ""
+    
     var processing = false
     
     @IBOutlet weak var usernameEntry: UITextField!
@@ -71,7 +73,8 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         let username = usernameEntry.text!
         var success = false
         queue.enter()
-        success = self.model.fetchJSON(term: searchterm, username: username)
+        let result = self.model.fetchJSON(term: searchterm, username: username)
+        success = result.success
         queue.leave()
         queue.notify(queue: .main) {
             self.resultTable.reloadData()
@@ -82,6 +85,8 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
                 let cancelAction = UIAlertAction(title: "Okay", style: .default)
                 alert.addAction(cancelAction)
                 self.present(alert, animated: true)
+            } else {
+                self.retrievedJSON = result.results
             }
         }
     }
@@ -103,23 +108,43 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     override func shouldPerformSegue(withIdentifier identifier: String?, sender: Any?) -> Bool {
-        if let ident = identifier {
-            if ident == "result" {
-                if processing {
-                    return false
-                }
-            }
+        if processing {
+            return false
+        }
+        if identifier! == "JSON" && retrievedJSON == "" {
+            let alert = UIAlertController(title: "No JSON data to show", message: "Try searching for something!", preferredStyle: .alert)
+            let cancelAction = UIAlertAction(title: "Okay", style: .default)
+            alert.addAction(cancelAction)
+            self.present(alert, animated: true)
+            return false
         }
         return true
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "result"{
+        switch segue.identifier! {
+        case "result":
             let selectedIndex: IndexPath = self.resultTable.indexPath(for: sender as! ResultTableViewCell)!
             if let detailVC: DetailViewController = segue.destination as? DetailViewController {
                 detailVC.result = model.results[selectedIndex.row];
             }
+            break
+        case "JSON":
+            if let jsonVC: JSONViewController = segue.destination as? JSONViewController {
+                jsonVC.JSON = retrievedJSON
+            }
+            break
+        default:
+            break
         }
+        
+        if segue.identifier == "result"{
+            
+        }
+    }
+    
+    @IBAction func returnedToTable(segue: UIStoryboardSegue)
+    {
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -134,6 +159,7 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     func establish() {
         view.endEditing(true)
         usernameEntry.resignFirstResponder()
+        usernameEntry.text = usernameEntry.text!.trimmingCharacters(in: .whitespaces).components(separatedBy: .whitespaces).joined()
         UserDefaults.standard.set(usernameEntry.text!, forKey: "username")
         
     }
