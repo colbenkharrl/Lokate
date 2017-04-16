@@ -14,6 +14,13 @@ class DetailViewController: UIViewController {
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var summaryText: UITextView!
     @IBOutlet weak var mapView: MKMapView!
+    @IBAction func mapTypeControl(_ sender: UISegmentedControl) {
+        if sender.selectedSegmentIndex == 0 {
+            mapView.mapType = .standard
+        } else {
+            mapView.mapType = .hybrid
+        }
+    }
     
     var result: Result = Result()
 
@@ -22,8 +29,7 @@ class DetailViewController: UIViewController {
         // Do any additional setup after loading the view, typically from a nib.
         titleLabel.text = result.title
         summaryText.text = result.summary
-                
-        mapView.mapType = MKMapType.hybrid
+        
         let coordinates = CLLocationCoordinate2D( latitude: result.latitude, longitude: result.longitude)
         let span: MKCoordinateSpan = MKCoordinateSpanMake(0.02, 0.02)
         let region: MKCoordinateRegion = MKCoordinateRegionMake(coordinates, span)

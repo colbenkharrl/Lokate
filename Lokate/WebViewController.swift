@@ -8,8 +8,9 @@
 
 import UIKit
 import WebKit
+import MessageUI
 
-class WebViewController: UIViewController, UIWebViewDelegate {
+class WebViewController: UIViewController, UIWebViewDelegate, MFMessageComposeViewControllerDelegate {
     @IBOutlet weak var progressIndicator: UIActivityIndicatorView!
     
     var urlString: String = "www.google.com"
@@ -28,7 +29,6 @@ class WebViewController: UIViewController, UIWebViewDelegate {
             urlString = "http://" + urlString
         }
         let url = URL(string: urlString)
-        print(url!.absoluteString)
         let req = URLRequest(url:url!)
         progressIndicator.hidesWhenStopped = true
         progressIndicator.startAnimating()
@@ -39,12 +39,45 @@ class WebViewController: UIViewController, UIWebViewDelegate {
         print(error.localizedDescription)
     }
     
-    func webView(_ webView: UIWebView, shouldStartLoadWith request: URLRequest, navigationType: UIWebViewNavigationType) -> Bool {
-        print(request.url!.absoluteString)
-        return true
+    func webViewDidStartLoad(_ webView: UIWebView) {
+        progressIndicator.startAnimating()
     }
     
     func webViewDidFinishLoad(_ webView: UIWebView) {
         progressIndicator.stopAnimating()
+    }
+    @IBAction func share(_ sender: UIBarButtonItem) {
+        if (MFMessageComposeViewController.canSendText()) {
+            let controller = MFMessageComposeViewController()
+            controller.body = "Check this place out!\n\n" + (webView.request?.url?.absoluteString)!
+            controller.messageComposeDelegate = self
+            self.present(controller, animated: true, completion: nil)
+        }
+    }
+
+    @IBAction func refresh(_ sender: UIBarButtonItem) {
+        webView.reload()
+    }
+    
+    
+    @IBAction func movePage(_ sender: UIButton) {
+        switch sender.tag {
+        case 1:
+            webView.goBack()
+            break
+        case 2:
+            webView.goForward()
+            break
+        default:
+            break
+        }
+    }
+    
+    func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
+        self.dismiss(animated: true, completion: nil)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        self.navigationController?.isNavigationBarHidden = false
     }
 }

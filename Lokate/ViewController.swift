@@ -8,12 +8,15 @@
 
 import UIKit
 
-class MainViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class MainViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate {
 
     let model = DataModel()
     
+    var tap: UITapGestureRecognizer = UITapGestureRecognizer()
+    
     var processing = false
     
+    @IBOutlet weak var usernameEntry: UITextField!
     @IBOutlet weak var resultTable: UITableView!
     @IBOutlet weak var loadProgress: UIActivityIndicatorView!
     
@@ -25,12 +28,24 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         loadProgress.isHidden = true
+        usernameEntry.delegate = self
         self.navigationController?.navigationBar.tintColor = UIColor.white
         self.navigationController?.navigationBar.titleTextAttributes = [NSForegroundColorAttributeName: UIColor.white]
         self.navigationController?.navigationBar.barTintColor = UIColor.black
+        tap = UITapGestureRecognizer(target: self, action: #selector(MainViewController.dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+        if let un = UserDefaults.standard.string(forKey: "username") {
+            if un == "" {
+                usernameEntry.text = "demo"
+            } else {
+                usernameEntry.text = un
+            }
+        }
     }
     
     @IBAction func search(_ sender: UIBarButtonItem) {
+        establish()
         let alert = UIAlertController(title: "New Search", message: "Enter location name", preferredStyle: .alert)
         let searchAction = UIAlertAction(title: "Search", style: .default) { [unowned self] action in
             guard let textField = alert.textFields?.first,
@@ -53,13 +68,21 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     func loadDataAsync(_ searchterm: String) {
         let queue = DispatchGroup()
+        let username = usernameEntry.text!
+        var success = false
         queue.enter()
-        self.model.fetchJSON(term: searchterm)
+        success = self.model.fetchJSON(term: searchterm, username: username)
         queue.leave()
         queue.notify(queue: .main) {
             self.resultTable.reloadData()
             self.processing = false
             self.loadProgress.stopAnimating()
+            if !success {
+                let alert = UIAlertController(title: "Search Failed", message: "Check username and try again", preferredStyle: .alert)
+                let cancelAction = UIAlertAction(title: "Okay", style: .default)
+                alert.addAction(cancelAction)
+                self.present(alert, animated: true)
+            }
         }
     }
     
@@ -73,6 +96,10 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         cell.thumbnail.image = model.results[indexPath.row].thumbnail
         cell.desc.text = model.results[indexPath.row].feature
         return cell;
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        resultTable.deselectRow(at: indexPath, animated: true)
     }
     
     override func shouldPerformSegue(withIdentifier identifier: String?, sender: Any?) -> Bool {
@@ -93,6 +120,22 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
                 detailVC.result = model.results[selectedIndex.row];
             }
         }
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        establish()
+        return true
+    }
+
+    func dismissKeyboard() {
+        establish()
+    }
+    
+    func establish() {
+        view.endEditing(true)
+        usernameEntry.resignFirstResponder()
+        UserDefaults.standard.set(usernameEntry.text!, forKey: "username")
+        
     }
 }
 

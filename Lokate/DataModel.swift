@@ -83,10 +83,10 @@ class DataModel {
     
     var results = [Result]()
     
-    func fetchJSON(term: String) {
+    func fetchJSON(term: String, username: String) -> Bool {
+        var res = false
         let semaphore = DispatchSemaphore(value: 0);
-        let urlString = "http://api.geonames.org/wikipediaSearchJSON?formatted=true&q="+term.removingWhitespaces()+"&maxRows=20&username=ckharrl&style=full"
-        print (urlString)
+        let urlString = "http://api.geonames.org/wikipediaSearchJSON?formatted=true&q="+term.removingWhitespaces()+"&maxRows=20&username="+username+"&style=full"
         let url = URL(string: urlString)!
         let urlSession = URLSession.shared
         let jsonQuery = urlSession.dataTask(with: url, completionHandler: { data, response, error -> Void in
@@ -94,16 +94,21 @@ class DataModel {
                 print(error!.localizedDescription)
             }
             let jsonResult = (try! JSONSerialization.jsonObject(with: data!, options: JSONSerialization.ReadingOptions.mutableContainers)) as! NSDictionary
-            print(jsonResult)
-            self.results = []
-            self.parseResults(data: jsonResult["geonames"]! as! NSArray)
+            if let dat = jsonResult["geonames"] as? NSArray {
+                res = true
+                self.results = []
+                self.parseResults(data: dat)
+            }
             semaphore.signal();
         })
         jsonQuery.resume()
         semaphore.wait(timeout: .distantFuture)
+        return res
     }
     
     func parseResults(data: NSArray) {
+        let queue = DispatchGroup()
+        let semaphore = DispatchSemaphore(value: 0)
         for i in 0..<data.count {
             let inc = data[i] as? [String: AnyObject]
             let summary = inc!["summary"] as! String?
@@ -113,9 +118,14 @@ class DataModel {
             let latitude = inc!["lat"] as! NSNumber
             let url = inc!["wikipediaUrl"] as! String
             let thumbnailURL = inc!["thumbnailImg"] as! String?
-            
+            queue.enter()
             self.results.append(Result(t: title, s: summary, f: feature, u: url, th: thumbnailURL, lon: longitude.doubleValue, lat: latitude.doubleValue))
+            queue.leave()
         }
+        queue.notify(queue: .main) {
+            semaphore.signal()
+        }
+        semaphore.wait(timeout: .distantFuture)
     }
 }
 
