@@ -10,45 +10,43 @@ import UIKit
 import WebKit
 import MessageUI
 
-class WebViewController: UIViewController, UIWebViewDelegate, MFMessageComposeViewControllerDelegate {
+class WebViewController: UIViewController  {
+    
+    //      MEMBER DEF
+    
     @IBOutlet weak var progressIndicator: UIActivityIndicatorView!
     
     var messaged = false
     var urlString: String = "www.google.com"
     @IBOutlet weak var webView: UIWebView!
     
+    //      VIEW DELEGATE/INITIALIZATION
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        initializeDisplay()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        if !messaged {
+            loadPage()
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        self.navigationController?.isNavigationBarHidden = false
+    }
+    
+    func initializeDisplay() {
+        navigationItem.title = "Wiki Search"
         progressIndicator.isHidden = true
         webView.delegate = self
         webView.scrollView.isScrollEnabled = true
         webView.scalesPageToFit = true
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        if !messaged {
-            if !(urlString.hasPrefix("http://") || urlString.hasPrefix("https://")) {
-                urlString = "http://" + urlString
-            }
-            let url = URL(string: urlString)
-            let req = URLRequest(url:url!)
-            progressIndicator.hidesWhenStopped = true
-            progressIndicator.startAnimating()
-            webView.loadRequest(req)
-        }
-    }
-    
-    func webView(_ webView: UIWebView, didFailLoadWithError error: Error) {
-        print(error.localizedDescription)
-    }
-    
-    func webViewDidStartLoad(_ webView: UIWebView) {
-        progressIndicator.startAnimating()
-    }
-    
-    func webViewDidFinishLoad(_ webView: UIWebView) {
-        progressIndicator.stopAnimating()
-    }
+    //      SHARE DEF
+
     @IBAction func share(_ sender: UIBarButtonItem) {
         if (MFMessageComposeViewController.canSendText()) {
             messaged = true
@@ -57,6 +55,19 @@ class WebViewController: UIViewController, UIWebViewDelegate, MFMessageComposeVi
             controller.messageComposeDelegate = self
             self.present(controller, animated: true, completion: nil)
         }
+    }
+    
+    //      WEBPAGE PROCESSING
+    
+    func loadPage() {
+        if !(urlString.hasPrefix("http://") || urlString.hasPrefix("https://")) {
+            urlString = "http://" + urlString
+        }
+        let url = URL(string: urlString)
+        let req = URLRequest(url:url!)
+        progressIndicator.hidesWhenStopped = true
+        progressIndicator.startAnimating()
+        webView.loadRequest(req)
     }
 
     @IBAction func refresh(_ sender: UIBarButtonItem) {
@@ -77,11 +88,28 @@ class WebViewController: UIViewController, UIWebViewDelegate, MFMessageComposeVi
         }
     }
     
+
+}
+
+extension WebViewController: UIWebViewDelegate, MFMessageComposeViewControllerDelegate {
+    
+    //      MESSAGEVIEW DEF
+    
     func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
         self.dismiss(animated: true, completion: nil)
     }
     
-    override func viewWillDisappear(_ animated: Bool) {
-        self.navigationController?.isNavigationBarHidden = false
+    //      WEBVIEW DEF
+    
+    func webView(_ webView: UIWebView, didFailLoadWithError error: Error) {
+        print(error.localizedDescription)
+    }
+    
+    func webViewDidStartLoad(_ webView: UIWebView) {
+        progressIndicator.startAnimating()
+    }
+    
+    func webViewDidFinishLoad(_ webView: UIWebView) {
+        progressIndicator.stopAnimating()
     }
 }

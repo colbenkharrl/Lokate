@@ -8,33 +8,39 @@
 
 import UIKit
 
-class MainViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate {
+enum PromptType {
+    case search, searchFailed, noJSON, noResults
+}
 
+class MainViewController: UIViewController {
+    
+    //      MEMBER DEF
+    
     let model = DataModel()
     
     var tap: UITapGestureRecognizer = UITapGestureRecognizer()
     
     var retrievedJSON = ""
-    
     var processing = false
     
     @IBOutlet weak var usernameEntry: UITextField!
     @IBOutlet weak var resultTable: UITableView!
     @IBOutlet weak var loadProgress: UIActivityIndicatorView!
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-    }
+    //      INITIALIZATION
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        initializeDisplay()
+    }
+    
+    func initializeDisplay() {
         loadProgress.isHidden = true
         usernameEntry.delegate = self
         self.navigationController?.navigationBar.tintColor = UIColor.white
         self.navigationController?.navigationBar.titleTextAttributes = [NSForegroundColorAttributeName: UIColor.white]
         self.navigationController?.navigationBar.barTintColor = UIColor.black
-        tap = UITapGestureRecognizer(target: self, action: #selector(MainViewController.dismissKeyboard))
+        tap = UITapGestureRecognizer(target: self, action: #selector(MainViewController.establish))
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
         if let un = UserDefaults.standard.string(forKey: "username") {
@@ -48,25 +54,10 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     
     @IBAction func search(_ sender: UIBarButtonItem) {
         establish()
-        let alert = UIAlertController(title: "New Search", message: "Enter location name", preferredStyle: .alert)
-        let searchAction = UIAlertAction(title: "Search", style: .default) { [unowned self] action in
-            guard let textField = alert.textFields?.first,
-                let searchterm = textField.text
-                else { return }
-            self.processing = true
-            self.loadProgress.hidesWhenStopped = true
-            self.loadProgress.startAnimating()
-            let queue = DispatchQueue(label: "JSON_PROCESS", attributes: .concurrent)
-            queue.async {
-                self.loadDataAsync(searchterm)
-            }
-        }
-        let cancelAction = UIAlertAction(title: "Cancel", style: .default)
-        alert.addTextField()
-        alert.addAction(cancelAction)
-        alert.addAction(searchAction)
-        present(alert, animated: true)
+        prompt(type: .search)
     }
+    
+    //      MODEL CALLS AND COMPLETION HANDLING
     
     func loadDataAsync(_ searchterm: String) {
         let queue = DispatchGroup()
@@ -77,45 +68,33 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         success = result.success
         queue.leave()
         queue.notify(queue: .main) {
-            self.resultTable.reloadData()
-            self.processing = false
-            self.loadProgress.stopAnimating()
-            if !success {
-                let alert = UIAlertController(title: "Search Failed", message: "Check username and try again", preferredStyle: .alert)
-                let cancelAction = UIAlertAction(title: "Okay", style: .default)
-                alert.addAction(cancelAction)
-                self.present(alert, animated: true)
+            self.processResults(success, res: result.results)
+        }
+    }
+    
+    func processResults(_ s: Bool, res: String) {
+        resultTable.reloadData()
+        processing = false
+        loadProgress.stopAnimating()
+        if !s {
+            prompt(type: .searchFailed)
+        } else {
+            if model.results.count == 0 {
+                prompt(type: .noResults)
             } else {
-                self.retrievedJSON = result.results
+                retrievedJSON = res
             }
         }
     }
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return model.results.count
-    }
-    
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "result", for: indexPath) as! ResultTableViewCell
-        cell.title.text = model.results[indexPath.row].title
-        cell.thumbnail.image = model.results[indexPath.row].thumbnail
-        cell.desc.text = model.results[indexPath.row].feature
-        return cell;
-    }
-    
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        resultTable.deselectRow(at: indexPath, animated: true)
-    }
+    //      SEGUE DEF
     
     override func shouldPerformSegue(withIdentifier identifier: String?, sender: Any?) -> Bool {
         if processing {
             return false
         }
         if identifier! == "JSON" && retrievedJSON == "" {
-            let alert = UIAlertController(title: "No JSON data to show", message: "Try searching for something!", preferredStyle: .alert)
-            let cancelAction = UIAlertAction(title: "Okay", style: .default)
-            alert.addAction(cancelAction)
-            self.present(alert, animated: true)
+            prompt(type: .noJSON)
             return false
         }
         return true
@@ -147,13 +126,86 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
     {
     }
     
+    //      ALERT PROMPT DEF
+    
+    func prompt(type: PromptType) {
+        var buttontext = ""
+        var searchAction: UIAlertAction? = nil
+        let alert = UIAlertController(title: "Default alert", message: "You shouldn't be seeing this", preferredStyle: .alert)
+        switch type {
+        case .noJSON:
+            alert.title = "No JSON data to show"
+            alert.message = "Try searching for something"
+            buttontext = "Okay"
+            break
+        case .noResults:
+            alert.title = "No results"
+            alert.message = "Looks like your search came up empty"
+            buttontext = "Okay"
+            break
+        case .search:
+            alert.title = "New Search"
+            alert.message = "Enter the name of a location"
+            buttontext = "Cancel"
+            searchAction = UIAlertAction(title: "Search", style: .default) { [unowned self] action in
+                guard let textField = alert.textFields?.first,
+                    let searchterm = textField.text
+                    else { return }
+                self.processing = true
+                self.loadProgress.hidesWhenStopped = true
+                self.loadProgress.startAnimating()
+                let queue = DispatchQueue(label: "JSON_PROCESS", attributes: .concurrent)
+                queue.async {
+                    self.loadDataAsync(searchterm)
+                }
+            }
+            break
+        case.searchFailed:
+            alert.title = "Search Failed"
+            alert.message = "Check your username and try again"
+            buttontext = "Okay"
+            break
+        }
+        let cancelAction = UIAlertAction(title: buttontext, style: .default)
+        if let s = searchAction {
+            alert.addTextField()
+            alert.addAction(cancelAction)
+            alert.addAction(s)
+        } else {
+            alert.addAction(cancelAction)
+        }
+        present(alert, animated: true)
+    }
+}
+
+extension MainViewController: UITableViewDelegate, UITableViewDataSource {
+    
+    //      TABLEVIEW DEF
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return model.results.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "result", for: indexPath) as! ResultTableViewCell
+        cell.title.text = model.results[indexPath.row].title
+        cell.thumbnail.image = model.results[indexPath.row].thumbnail
+        cell.desc.text = model.results[indexPath.row].feature
+        return cell;
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        resultTable.deselectRow(at: indexPath, animated: true)
+    }
+}
+
+extension MainViewController: UITextFieldDelegate {
+    
+    //      TEXTFIELD/KEYBOARD DEF
+    
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         establish()
         return true
-    }
-
-    func dismissKeyboard() {
-        establish()
     }
     
     func establish() {
@@ -164,4 +216,3 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         
     }
 }
-

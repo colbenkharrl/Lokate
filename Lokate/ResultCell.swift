@@ -10,6 +10,8 @@ import UIKit
 
 class ResultTableViewCell: UITableViewCell {
     
+    //      MEMBER DEF
+    
     @IBOutlet weak var thumbnail: UIImageView!
 
     @IBOutlet weak var title: UILabel!
@@ -18,6 +20,5 @@ class ResultTableViewCell: UITableViewCell {
     
     override func awakeFromNib() {
         super.awakeFromNib()
-        // Initialization code
     }
 }

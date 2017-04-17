@@ -10,8 +10,12 @@ import UIKit
 
 class JSONViewController: UIViewController{
     
+    //      MEMBER DEF
+    
     var JSON = ""
     @IBOutlet weak var JSONText: UITextView!
+    
+    //      INITIALIZATION
     
     override func viewDidLoad() {
         super.viewDidLoad()

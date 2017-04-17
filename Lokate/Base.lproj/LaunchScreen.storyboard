@@ -30,7 +30,7 @@
                                 </constraints>
                             </imageView>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Lokate" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Pb3-Vg-3V8">
-                                <rect key="frame" x="56" y="416" width="263" height="70"/>
+                                <rect key="frame" x="56" y="180" width="263" height="70"/>
                                 <fontDescription key="fontDescription" name="KohinoorBangla-Semibold" family="Kohinoor Bangla" pointSize="68"/>
                                 <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                 <nil key="highlightedColor"/>
@@ -39,11 +39,11 @@
                         <color key="backgroundColor" red="0.085114609771573563" green="0.085957328680203005" blue="0.085957328680203005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="LF8-nI-zds" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="3q0-0g-gyQ"/>
+                            <constraint firstItem="Pb3-Vg-3V8" firstAttribute="centerX" secondItem="LF8-nI-zds" secondAttribute="centerX" id="6AE-dH-GxA"/>
                             <constraint firstItem="LF8-nI-zds" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="6xV-wQ-0Xa"/>
-                            <constraint firstItem="xb3-aO-Qok" firstAttribute="top" secondItem="Pb3-Vg-3V8" secondAttribute="bottom" constant="181" id="Xff-Bh-Ju5"/>
-                            <constraint firstItem="Pb3-Vg-3V8" firstAttribute="top" secondItem="LF8-nI-zds" secondAttribute="bottom" constant="8" symbolic="YES" id="aB3-kw-b0R"/>
-                            <constraint firstItem="Pb3-Vg-3V8" firstAttribute="centerX" secondItem="LF8-nI-zds" secondAttribute="centerX" id="oTU-Qw-N2u"/>
-                            <constraint firstItem="Pb3-Vg-3V8" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leadingMargin" constant="40" id="ssP-DD-kqS"/>
+                            <constraint firstItem="Pb3-Vg-3V8" firstAttribute="top" secondItem="Llm-lL-Icb" secondAttribute="bottom" constant="160" id="HCH-xK-dPi"/>
+                            <constraint firstItem="Pb3-Vg-3V8" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leadingMargin" constant="40" id="V0r-5t-hyx"/>
+                            <constraint firstItem="LF8-nI-zds" firstAttribute="top" secondItem="Pb3-Vg-3V8" secondAttribute="bottom" constant="8" symbolic="YES" id="Vdq-9e-FNl"/>
                         </constraints>
                     </view>
                 </viewController>
