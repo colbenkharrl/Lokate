@@ -7,9 +7,10 @@
 //
 
 import UIKit
+import CoreData
 
 enum PromptType {
-    case search, searchFailed, noJSON, noResults
+    case search, saved, searchFailed, noJSON, noResults, noHistory, alreadySaved
 }
 
 class MainViewController: UIViewController {
@@ -17,6 +18,8 @@ class MainViewController: UIViewController {
     //      MEMBER DEF
     
     let model = DataModel()
+    
+    let context = (UIApplication.shared.delegate as? AppDelegate)!.persistentContainer.viewContext
     
     var tap: UITapGestureRecognizer = UITapGestureRecognizer()
     
@@ -81,6 +84,7 @@ class MainViewController: UIViewController {
         } else {
             if model.results.count == 0 {
                 prompt(type: .noResults)
+                retrievedJSON = ""
             } else {
                 retrievedJSON = res
             }
@@ -93,9 +97,25 @@ class MainViewController: UIViewController {
         if processing {
             return false
         }
-        if identifier! == "JSON" && retrievedJSON == "" {
-            prompt(type: .noJSON)
-            return false
+        if let id = identifier {
+            switch id {
+            case "JSON":
+                if retrievedJSON == "" {
+                    prompt(type: .noJSON)
+                    return false
+                }
+                break
+            case "history":
+                let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Cache")
+                let fetchCache = ((try? context.fetch(fetchRequest)) as? [Cache])!
+                if fetchCache.count == 0 {
+                    prompt(type: .noHistory)
+                    return false
+                }
+                break
+            default:
+                break
+            }
         }
         return true
     }
@@ -115,10 +135,6 @@ class MainViewController: UIViewController {
             break
         default:
             break
-        }
-        
-        if segue.identifier == "result"{
-            
         }
     }
     
@@ -162,7 +178,22 @@ class MainViewController: UIViewController {
             break
         case.searchFailed:
             alert.title = "Search Failed"
-            alert.message = "Check your username and try again"
+            alert.message = "Check your username or internet connection"
+            buttontext = "Okay"
+            break
+        case .noHistory:
+            alert.title = "No history"
+            alert.message = "Swipe left on a search result to save"
+            buttontext = "Okay"
+            break
+        case .alreadySaved:
+            alert.title = "Result already saved"
+            alert.message = "No need to save this again, silly"
+            buttontext = "Okay"
+            break
+        case .saved:
+            alert.title = "Result saved"
+            alert.message = "You can come back to this in your history"
             buttontext = "Okay"
             break
         }
@@ -175,6 +206,27 @@ class MainViewController: UIViewController {
             alert.addAction(cancelAction)
         }
         present(alert, animated: true)
+    }
+    
+    //      COREDATA SAVE
+    
+    func saveRow(_ indexPath: IndexPath) {
+        let ent = NSEntityDescription.entity(forEntityName: "Cache", in: context)
+        let newItem = Cache(entity: ent!, insertInto: context)
+        newItem.title = self.model.results[indexPath.row].title
+        newItem.summary = self.model.results[indexPath.row].summary
+        newItem.feature = self.model.results[indexPath.row].feature
+        newItem.url = self.model.results[indexPath.row].url
+        newItem.thumbnail = UIImagePNGRepresentation(self.model.results[indexPath.row].thumbnail) as NSData?
+        newItem.longitude = self.model.results[indexPath.row].longitude
+        newItem.latitude = self.model.results[indexPath.row].latitude
+        newItem.added = NSDate.init()
+        
+        do {
+            try context.save()
+            print("Saved.")
+        } catch _ {
+        }
     }
 }
 
@@ -196,6 +248,27 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         resultTable.deselectRow(at: indexPath, animated: true)
+    }
+    
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+    }
+    func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
+        let save = UITableViewRowAction(style: .default, title: "Save") {
+            (rowAction, indexPath) in
+            if !self.model.results[indexPath.row].saved {
+                self.model.results[indexPath.row].saved = true
+                self.saveRow(indexPath)
+            } else {
+                self.prompt(type: .alreadySaved)
+            }
+            self.resultTable.setEditing(false, animated: true)
+        }
+        save.backgroundColor = UIColor.lightGray
+        return [save]
     }
 }
 

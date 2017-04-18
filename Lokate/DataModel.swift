@@ -19,6 +19,7 @@ class Result {
     var thumbnail: UIImage
     var longitude: Double
     var latitude: Double
+    var saved = false
     
     init() {
         title = ""
