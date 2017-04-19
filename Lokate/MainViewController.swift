@@ -12,7 +12,7 @@ import CoreData
 //      PROMPT TYPE DEF
 
 enum PromptType {
-    case search, saved, searchFailed, noJSON, noResults, noHistory, alreadySaved, newUser, saveInstruction
+    case search, saved, searchFailed, noJSON, noResults, noHistory, alreadySaved, newUser, saveInstruction, username
 }
 
 class MainViewController: UIViewController {
@@ -220,6 +220,11 @@ class MainViewController: UIViewController {
             alert.message = "Try swiping left on a search result to save, then check out your history"
             buttontext = "Okay"
             break
+        case .username:
+            alert.title = "GeoNames Username"
+            alert.message = "Here you can enter your username for the GeoNames WebService. If left blank, it will attempt to search with the demo username, however this may fail.\n If you are having trouble, you can use mine: ckharrl"
+            buttontext = "Okay"
+            break
         }
         let cancelAction = UIAlertAction(title: buttontext, style: .default)
         if let s = searchAction {
@@ -306,6 +311,13 @@ extension MainViewController: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         establish()
         return true
+    }
+    
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        if !UserDefaults.standard.bool(forKey: "triedUsername") {
+            prompt(type: .username)
+            UserDefaults.standard.set(true, forKey: "triedUsername")
+        }
     }
     
     func establish() {
