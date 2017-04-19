@@ -23,6 +23,13 @@ class HistoryViewController: UIViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         initializeDisplay()
+        if !UserDefaults.standard.bool(forKey: "viewedHistory") {
+            let alert = UIAlertController(title: "Pro tip", message: "You can delete items in your history by swiping them to the left.", preferredStyle: .alert)
+            let cancelAction = UIAlertAction(title: "Okay", style: .default)
+            alert.addAction(cancelAction)
+            present(alert, animated: true)
+            UserDefaults.standard.set(true, forKey: "viewedHistory")
+        }
     }
     
     func initializeDisplay() {

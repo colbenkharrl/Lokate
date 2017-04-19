@@ -9,8 +9,10 @@
 import UIKit
 import CoreData
 
+//      PROMPT TYPE DEF
+
 enum PromptType {
-    case search, saved, searchFailed, noJSON, noResults, noHistory, alreadySaved
+    case search, saved, searchFailed, noJSON, noResults, noHistory, alreadySaved, newUser, saveInstruction
 }
 
 class MainViewController: UIViewController {
@@ -40,6 +42,7 @@ class MainViewController: UIViewController {
     func initializeDisplay() {
         loadProgress.isHidden = true
         usernameEntry.delegate = self
+        usernameEntry.keyboardType = .alphabet
         self.navigationController?.navigationBar.tintColor = UIColor.white
         self.navigationController?.navigationBar.titleTextAttributes = [NSForegroundColorAttributeName: UIColor.white]
         self.navigationController?.navigationBar.barTintColor = UIColor.black
@@ -47,11 +50,11 @@ class MainViewController: UIViewController {
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
         if let un = UserDefaults.standard.string(forKey: "username") {
-            if un == "" {
-                usernameEntry.text = "demo"
-            } else {
-                usernameEntry.text = un
-            }
+            usernameEntry.text = un
+        }
+        if !UserDefaults.standard.bool(forKey: "returning") {
+            prompt(type: .newUser)
+            UserDefaults.standard.set(true, forKey: "returning")
         }
     }
     
@@ -62,9 +65,22 @@ class MainViewController: UIViewController {
     
     //      MODEL CALLS AND COMPLETION HANDLING
     
+    func searchCall(_ searchterm: String) {
+        self.processing = true
+        self.loadProgress.hidesWhenStopped = true
+        self.loadProgress.startAnimating()
+        let queue = DispatchQueue(label: "JSON_PROCESS", attributes: .concurrent)
+        queue.async {
+            self.loadDataAsync(searchterm)
+        }
+    }
+    
     func loadDataAsync(_ searchterm: String) {
         let queue = DispatchGroup()
-        let username = usernameEntry.text!
+        var username = usernameEntry.text!
+        if username == "" {
+            username = "demo"
+        }
         var success = false
         queue.enter()
         let result = self.model.fetchJSON(term: searchterm, username: username)
@@ -88,6 +104,10 @@ class MainViewController: UIViewController {
             } else {
                 retrievedJSON = res
             }
+        }
+        if !UserDefaults.standard.bool(forKey: "searchedBefore") {
+            prompt(type: .saveInstruction)
+            UserDefaults.standard.set(true, forKey: "searchedBefore")
         }
     }
     
@@ -167,13 +187,7 @@ class MainViewController: UIViewController {
                 guard let textField = alert.textFields?.first,
                     let searchterm = textField.text
                     else { return }
-                self.processing = true
-                self.loadProgress.hidesWhenStopped = true
-                self.loadProgress.startAnimating()
-                let queue = DispatchQueue(label: "JSON_PROCESS", attributes: .concurrent)
-                queue.async {
-                    self.loadDataAsync(searchterm)
-                }
+                self.searchCall(searchterm)
             }
             break
         case.searchFailed:
@@ -196,10 +210,23 @@ class MainViewController: UIViewController {
             alert.message = "You can come back to this in your history"
             buttontext = "Okay"
             break
+        case .newUser:
+            alert.title = "Welcome to Lokate!"
+            alert.message = "Lokate is a utility app for researching locations. Try searching for the name of a place you know up in the top right corner!"
+            buttontext = "Let's do it!"
+            break
+        case .saveInstruction:
+            alert.title = "Nice search!"
+            alert.message = "Try swiping left on a search result to save, then check out your history"
+            buttontext = "Okay"
+            break
         }
         let cancelAction = UIAlertAction(title: buttontext, style: .default)
         if let s = searchAction {
-            alert.addTextField()
+            alert.addTextField() {
+                textfield in
+                textfield.keyboardType = .alphabet
+            }
             alert.addAction(cancelAction)
             alert.addAction(s)
         } else {
