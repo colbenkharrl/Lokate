@@ -38,7 +38,7 @@ class WebViewController: UIViewController  {
     }
     
     func initializeDisplay() {
-        navigationItem.title = "Wiki Search"
+        navigationItem.title = "Web Search"
         progressIndicator.isHidden = true
         webView.delegate = self
         webView.scrollView.isScrollEnabled = true
